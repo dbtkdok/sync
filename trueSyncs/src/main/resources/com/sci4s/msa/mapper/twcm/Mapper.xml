@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sci4s.msa.mapper.twcm.TWcmMapper">
+
+	<!-- uuID -->
+	<select id="getUUID" parameterType="hashmap" resultType="hashmap">
+		<choose>
+		  <when test='SQLMODE == "mariadb"'>
+			SELECT getUUID('tbl_uuids') AS uuID
+		  </when>
+		  <otherwise>
+		  	SELECT seq_uuid.nextval AS uuID FROM DUAL
+		  </otherwise>
+		</choose>
+	</select>
+	
+	<!-- =================================
+                    공통코드 싱크 쿼리 파트 시작
+	     ================================= 
+	-->
+	<!-- 공통코드 존재여부 체크 -->
+	<select id="existsTblCodes" parameterType="hashmap" resultType="java.lang.Long">
+	<![CDATA[
+		select codeuid from tbl_cmcode
+	     where agentid  = #{agentID}
+	       and codegrp = #{codeType}
+	       and codecd = #{codeID}
+		]]>
+			<choose>
+			    <when test='refCodeID != null and refCodeID != ""'>
+			        and subcd   = #{refCodeID}
+			    </when>
+			    <otherwise>
+				    and subcd IS NULL
+			    </otherwise>
+			</choose>
+	</select>
+
+	<!-- 공통코드 마스터 싱크 -->
+	<insert id="insTblCodes" parameterType="hashmap">
+		<selectKey resultType="Long" keyProperty="codeuid" order="BEFORE">
+   		  <choose>
+		    <when test='SQLMODE == "mariadb"'>
+		    SELECT getUUID('uuid') AS codeuid
+		    </when>
+		    <otherwise>
+		    SELECT seq_uuid.nextval AS codeuid FROM dual
+		    </otherwise>
+		  </choose>
+	    </selectKey>
+		insert into tbl_cmcode (
+			codeuid
+			,agentid
+			,codegrp
+			,codecd
+			,codenm
+		<if test='refCodeID != null and refCodeID != ""'>
+			,subcd
+		</if>
+			,codeex
+			,sortORD
+			,regdatetime
+			,reguserid
+			,dbsts
+		) values (
+		 	#{codeuid}
+			,#{agentID}
+			,#{codeType}
+			,#{codeID}
+			,#{val1}
+		<if test='refCodeID != null and refCodeID != ""'>
+			,#{refCodeID}
+		</if>
+			,#{codeTypeNM}
+			,#{sortORD}
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	    ,now()
+	    </when>
+	    <otherwise>
+		,SYSDATE
+	    </otherwise>
+	</choose>
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	    ,IFNULL(#{createrID},'system')
+	    </when>
+	    <otherwise>
+		,NVL(#{createrID},'system')
+	    </otherwise>
+	</choose>
+		,#{dbSTS}
+		)
+	</insert>
+	
+	<!-- 공통코드 마스터 싱크 -->
+	<update id="updTblCodes" parameterType="hashmap">
+		update tbl_cmcode set
+		     codenm = #{val1}
+		<if test='refCodeID != null and refCodeID != ""'>
+			,subcd  = #{refCodeID}
+		</if>
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	        ,reguserid  = IFNULL(#{createrID},'system')
+	    </when>
+	    <otherwise>
+		    ,reguserid  = NVL(#{createrID},'system')
+	    </otherwise>
+	</choose>
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	        ,regdatetime  = now()
+	    </when>
+	    <otherwise>
+		    ,regdatetime  = SYSDATE
+	    </otherwise>
+	</choose>
+			,sortORD   = #{sortORD}
+			,codeex    = #{codeTypeNM}
+			,dbSTS     = #{dbSTS}
+	    where codeuid = #{codeuid}
+	</update>
+</mapper>

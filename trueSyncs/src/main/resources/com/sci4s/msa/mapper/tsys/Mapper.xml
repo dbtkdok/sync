@@ -1,0 +1,1106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sci4s.msa.mapper.tsys.TSysMapper">
+
+	<!-- uuID -->
+	<select id="getUUID" parameterType="hashmap" resultType="hashmap">
+		<choose>
+		  <when test='SQLMODE == "mariadb"'>
+			SELECT getUUID('tbl_uuids') AS uuID
+		  </when>
+		  <otherwise>
+		  	SELECT seq_uuid.nextval AS uuID FROM DUAL
+		  </otherwise>
+		</choose>
+	</select>
+	
+	<!-- =================================
+         privIDs xml 생성 쿼리 시작
+	     ================================= 
+	-->
+	<select id="getEnableJobCache" parameterType="hashmap" resultType="hashmap">
+    	SELECT distinct concat(roleID,'|',menuID,'|',privID) AS keyID
+             , concat(privID,'|',activeImg,'|',privNM) AS valText
+		  FROM tbl_userprivs
+		WHERE agentID = #{agentID}
+		   AND dbSTS   = 'Y'
+    </select> 
+    
+    <select id="getTblUserRoleMapCnt" resultType="int">
+    	SELECT 
+			COUNT(*)
+		FROM tbl_userrolemap A
+		WHERE A.ifDT IS NULL
+    </select> 
+	
+	<insert id="insTblUserRoleMap" parameterType="hashmap">
+		INSERT INTO tbl_userrolemap (
+			createDT	
+			,agentID
+		) VALUES (
+			<choose>
+			  <when test='SQLMODE == "oracle"'>
+		    SYSDATE
+			  </when>
+			  <otherwise>
+		    now()
+			  </otherwise>
+			</choose> 
+		    ,#{agentID}
+		)
+	</insert>
+	
+	<update id="updTblUserRoleMap" parameterType="hashmap">
+		UPDATE tbl_userrolemap
+		   SET 
+			<choose>
+			  <when test='SQLMODE == "oracle"'>
+		     ifDT = SYSDATE
+			  </when>
+			  <otherwise>
+		     ifDT = now()
+			  </otherwise>
+			</choose>
+		 WHERE ifDT IS NULL
+	</update>
+	
+	<!-- =================================
+         privIDs xml 생성 쿼리 끝
+	     ================================= 
+	-->
+	
+	<!-- =================================
+                  메뉴 xml 생성 쿼리 시작
+	     ================================= 
+	-->
+	
+	<select id="getTblSyncMenu" parameterType="hashmap" resultType="hashmap">
+		SELECT 
+			roleUID
+			, bakUID
+			, roleID
+		FROM tbl_rolemenuif A
+		WHERE A.ifDT IS NULL
+		GROUP BY roleUID
+	</select>
+	
+	<select id="getTblTopMenuList" parameterType="hashmap" resultType="hashmap">
+		SELECT 
+			cc.menuID
+			, dd.linkUri
+			, ee.menuNM
+			, ee.menuID  AS topMenuID
+			, ff.menuID  AS parMenuID
+			, 'ko' AS lang
+			, hh.langEN
+			, hh.langCN
+		FROM tbl_roles aa 
+		INNER JOIN tbl_rolescopes bb ON aa.roleUID  = bb.roleUID
+		INNER JOIN tbl_scopeacts  cc ON bb.scopeUID = cc.scopeUID
+		LEFT JOIN tbl_menus      dd ON dd.menuID   = cc.menuID
+		LEFT JOIN tbl_menus      ee ON ee.menuUID  = dd.topMenuID
+		LEFT JOIN tbl_menus      ff ON ff.menuUID  = dd.parMenuID
+		INNER JOIN tbl_pages     gg ON gg.pageUID  = cc.pageUID
+		LEFT JOIN tbl_dictionary hh ON ee.dictUID  = hh.dictUID
+		WHERE aa.roleUID = #{roleUID} 
+		  AND aa.agentID    = #{agentID}	
+		GROUP BY ee.topMenuID
+		ORDER BY ee.sortORD
+	</select>
+		
+	<select id="getTblLeftMenuList" parameterType="hashmap" resultType="hashmap">
+		SELECT 
+			cc.menuID
+			, dd.linkUri
+			, dd.menuNM
+			, ee.menuID  AS topMenuID
+			, ff.menuID  AS parMenuID
+			, ff.menuNM  as parMenuNM
+			, ii.langEN  AS parLangEN
+			, ii.langCN  AS parLangCN
+			, 'ko' AS parLang
+			, ee.sortORD as topSortORD
+			, ff.sortORD as parSortORD
+			, 'ko' AS lang
+			, hh.langEN
+			, hh.langCN
+		FROM tbl_roles aa 
+		INNER JOIN tbl_rolescopes bb ON aa.roleUID  = bb.roleUID
+		INNER JOIN tbl_scopeacts  cc ON bb.scopeUID = cc.scopeUID
+		LEFT JOIN tbl_menus      dd ON dd.menuID   = cc.menuID
+		LEFT JOIN tbl_menus      ee ON ee.menuUID  = dd.topMenuID
+		LEFT JOIN tbl_menus      ff ON ff.menuUID  = dd.parMenuID
+		LEFT JOIN tbl_dictionary ii ON ff.dictUID  = ii.dictUID
+		INNER JOIN tbl_pages     gg ON gg.pageUID  = cc.pageUID
+		LEFT JOIN tbl_dictionary hh ON dd.dictUID  = hh.dictUID
+		WHERE aa.roleUID = #{roleUID}
+		GROUP BY cc.menuID
+		ORDER BY ff.menuID, dd.sortORD, cc.menuID
+	</select>
+		
+	<update id="updTblSyncMenu" parameterType="hashmap">
+		update tbl_rolemenuif set
+			 jobID      = #{uuID}
+		<choose>
+		    <when test='SQLMODE == "mariadb"'>
+		         ,ifDT    = now()
+		    </when>
+		    <otherwise>
+			     ,ifDT    = SYSDATE
+		    </otherwise>
+		</choose>
+		 where jobID IS NULL
+	</update>
+	
+	<!-- =================================
+                  메뉴 xml 생성 쿼리 끝
+	     ================================= 
+	-->
+	
+	<!-- =================================
+                  용어 xml 생성 쿼리 시작
+	     ================================= 
+	-->
+	
+	<select id="getTblSyncDictionary" parameterType="hashmap" resultType="hashmap">
+		SELECT 
+			bakUID
+			,dictUID
+			,langKR
+			,langEN
+			,langCN
+		FROM tbl_dictionaryif A
+		WHERE A.ifDT IS NULL
+	</select>
+	
+	<select id="getTblDicList" parameterType="hashmap" resultType="hashmap">
+	  	SELECT 
+		  d.dictID
+		, d.dictUID
+		, d.langKR
+		, d.langEN
+		, d.langCN
+		, d.dictRemk
+		, d.menuGB
+		, d.dbSTS
+		FROM tbl_dictionary d
+		WHERE d.agentID = #{agentID}
+		 <choose>
+		    <when test='dictUID != null and dictUID != ""'>
+		   		 d.dictUID = #{dictUID}
+		    </when>
+		    <otherwise>
+		    	<if test='srchText != null and srchText != ""'>
+	            AND CONCAT(IFNULL(d.dictID,''),IFNULL(d.langKR,''),IFNULL(d.langEN,''),IFNULL(d.langCN,''), IFNULL(d.dictRemk,''), IFNULL(d.menuGB,''), IFNULL(d.dbSTS,'')) REGEXP #{srchText}
+	        	</if>
+        		<if test='dictID != null and dictID != ""'>
+			  	 AND d.dictID LIKE CONCAT_WS('','%',#{dictID},'%')
+				</if>
+				<if test='langKR != null and langKR != ""'>
+  					<choose>
+					    <when test='SQLMODE == "mariadb"'>
+				 AND d.langKR LIKE CONCAT_WS('','%',#{langKR},'%')
+					    </when>
+					    <otherwise>
+				 AND d.langKR LIKE '%'|| #{langKR} ||'%'
+					    </otherwise>
+					</choose>
+				</if>
+				<if test='langEN != null and langEN != ""'>
+  					<choose>
+					    <when test='SQLMODE == "mariadb"'>
+				 AND d.langEN LIKE CONCAT_WS('','%',#{langEN},'%')
+					    </when>
+					    <otherwise>
+				 AND d.langEN LIKE '%'|| #{langEN} ||'%'
+					    </otherwise>
+					</choose>
+				</if>
+				<if test='langCN != null and langCN != ""'>
+  					<choose>
+					    <when test='SQLMODE == "mariadb"'>
+				 AND d.langCN LIKE CONCAT_WS('','%',#{langCN},'%')
+					    </when>
+					    <otherwise>
+				 AND d.langCN LIKE '%'|| #{langCN} ||'%'
+					    </otherwise>
+					</choose>
+				</if>
+				<if test='dictRemk != null and dictRemk != ""'>
+  					<choose>
+					    <when test='SQLMODE == "mariadb"'>
+				 AND d.dictRemk LIKE CONCAT_WS('','%',#{dictRemk},'%')
+					    </when>
+					    <otherwise>
+				 AND d.dictRemk LIKE '%'|| #{dictRemk} ||'%'
+					    </otherwise>
+					</choose>
+				</if>
+				<if test='dbSTS != null and dbSTS != ""'>
+			  	 AND d.dbSTS = #{dbSTS}
+				</if>
+	    </otherwise>
+		 </choose>
+		 	ORDER BY d.dictID
+	  </select>
+	
+	<update id="updTblSyncDictionary" parameterType="hashmap">
+		UPDATE tbl_dictionaryif SET
+			 jobID      = #{uuID}
+		<choose>
+		    <when test='SQLMODE == "mariadb"'>
+		         ,ifDT    = NOW()
+		    </when>
+		    <otherwise>
+			     ,ifDT    = SYSDATE
+		    </otherwise>
+		</choose>
+		 WHERE jobID IS NULL
+	</update>
+	
+	<!-- =================================
+                  용어 xml 생성 쿼리 끝
+	     ================================= 
+	-->
+	
+	<!-- =================================
+                    연계작업 이력 쿼리 파트 시작
+	     ================================= 
+	-->
+	<!-- 연계작업 이력 등록 -->
+	<insert id="insTblSyncJobHist" parameterType="hashmap">
+		INSERT INTO tbl_syncjobhist (
+			 pID
+			,pNM
+			,ifMSA
+			,type
+			,msaID
+			,ifPID
+			,ifParamIDs
+			,ifParamVals
+			,jsonFileNM
+			,tableNM
+			,methodNM
+			,ifRSTS
+			,ifPSTS
+			,results
+			,targets
+			,createDT
+			,createrID		
+			,agentID
+			,reprocGB
+		) VALUES (
+			 #{pID}
+			,#{pNM}
+			,#{ifMSA}
+			,#{type}
+			,#{msaID}
+			,#{ifPID}
+			,#{ifParamIDs}
+			,#{ifParamVals}
+			,null
+			,#{tableNM}
+			,#{methodNM}
+			,#{ifRSTS}
+			,null
+			,null
+			,#{targets}
+			<choose>
+			  <when test='SQLMODE == "oracle"'>
+		    ,SYSDATE
+			  </when>
+			  <otherwise>
+		    ,now()
+			  </otherwise>
+			</choose> 
+		    ,#{userUID}
+		    ,#{agentID}
+		    ,'N'
+		)
+		<selectKey resultType="long" keyProperty="ifUID" order="AFTER">
+	        SELECT LAST_INSERT_ID()
+	    </selectKey> 
+	</insert>
+	
+	<!-- 연계작업 이력 수정 -->
+	<update id="updTblSyncJobHist" parameterType="hashmap">
+		UPDATE tbl_syncjobhist
+		   SET 
+			<choose>
+			  <when test='SQLMODE == "oracle"'>
+		     updateDT = SYSDATE
+			  </when>
+			  <otherwise>
+		     updateDT = now()
+			  </otherwise>
+			</choose> 
+			,updaterID = #{userUID}
+		<if test='jsonFileNM != null and jsonFileNM != ""'>
+	        , jsonFileNM = #{jsonFileNM}
+		</if>
+		<if test='ifRSTS != null and ifRSTS != ""'>
+	        , ifRSTS = #{ifRSTS}
+		</if>
+		<if test='ifPSTS != null and ifPSTS != ""'>
+	        , ifPSTS = #{ifPSTS}
+		</if>
+		<if test='results != null and results != ""'>
+	        , results = #{results}
+		</if>
+		<if test='procStartDT != null and procStartDT != ""'>
+			<choose>
+			  <when test='SQLMODE == "oracle"'>
+		    ,procStartDT = SYSDATE
+			  </when>
+			  <otherwise>
+		    ,procStartDT = now()
+			  </otherwise>
+			</choose> 
+		</if>
+		<if test='procEndDT != null and procEndDT != ""'>
+			<choose>
+			  <when test='SQLMODE == "oracle"'>
+		    ,procEndDT = SYSDATE
+			  </when>
+			  <otherwise>
+		    ,procEndDT = now()
+			  </otherwise>
+			</choose> 
+		</if>
+		 WHERE ifUID = #{ifUID}
+	</update>
+	
+	<!-- 파일을 읽어드릴 대상에 jobID를 업데이트함. -->
+	<update id="updTblSyncJobHist4IfPSTS" parameterType="hashmap">
+		UPDATE tbl_syncjobhist 
+		   SET jobID     = #{uuID}
+			<choose>
+			  <when test='SQLMODE == "oracle"'>
+		     , updateDT  = SYSDATE
+			  </when>
+			  <otherwise>
+		     , updateDT  = now()
+			  </otherwise>
+			</choose> 
+			 , updaterID = #{userUID}	
+			 , ifPSTS    = 'R'	   
+		 WHERE ifRSTS = 'T'
+	</update>
+	<select id="getTblSyncJobHist" parameterType="hashmap" resultType="hashmap">
+		SELECT
+		     ifUID
+			,pID
+			,pNM
+			,msaID
+			,methodNM
+			,targets
+			,ifPID
+			,ifParamIDs
+			,ifParamVals
+			,ifRSTS
+		FROM tbl_syncjobhist
+		WHERE jobID = #{uuID}
+	</select>
+	
+	<!-- 연계작업 백업 -->
+	<insert id="insTblSyncJobHist4Bak" parameterType="hashmap">
+		INSERT INTO tbl_syncjobhistbak (
+			  bakDT     
+			, ifUID       , agentID      ,   pID      ,    ifMSA
+			, ifParamVals , ifParamIDs   ,   pNM      ,    tableNM		
+			, jsonFileNM  , ifRSTS       ,   ifPSTS   ,    results
+			, createDT    , createrID    ,   updateDT ,    updaterID
+			, procStartDT , procEndDT    ,   jobID
+		) 
+		SELECT 
+			<choose>
+			  <when test='SQLMODE == "oracle"'>
+		     SYSDATE AS bakDT
+			  </when>
+			  <otherwise>
+		     now() AS bakDT
+			  </otherwise>
+			</choose> 
+			, ifUID       , agentID      ,   pID      ,    ifMSA
+			, ifParamVals , ifParamIDs   ,   pNM      ,    tableNM		
+			, jsonFileNM  , ifRSTS       ,   ifPSTS   ,    results
+			, createDT    , createrID    ,   updateDT ,    updaterID
+			, procStartDT , procEndDT    ,   jobID
+		 FROM tbl_syncjobhist
+		 WHERE jobID = #{uuID}		   
+	</insert>
+	<!-- 연계작업 백업을 위해 jobID 수정 -->
+	<update id="updTblSyncJobHist4Bak" parameterType="hashmap">
+		UPDATE tbl_syncjobhist SET jobID = #{uuID}
+		 WHERE (ifRSTS = 'Y' AND ifPSTS IS NULL) OR (ifRSTS = 'Y' AND ifPSTS = 'Y')
+	</update>
+	<!-- 연계작업 백업 후 삭제 -->
+	<delete id="delTblSyncJobHist4Bak" parameterType="hashmap">
+		DELETE FROM tbl_syncjobhist WHERE jobID = #{uuID}
+	</delete>
+	
+	<!-- =================================
+                    싱크 데이터 처리
+	     =================================
+	-->
+	<insert id="insTblSyncJobRequest" parameterType="hashmap">
+		<foreach item="item" collection="list" separator=";">
+			INSERT INTO tbl_syncjobrequest (
+				ifUID
+				,pID
+				,pNM
+				,ifMSA
+				,ifParamIDs
+				,ifParamVals
+				,jsonFileNM
+				,targets
+				,tableNM
+				,ifPSTS
+				,results
+				,createDT
+				,createrID		
+				,agentID
+			) VALUES (
+				#{item.ifUID}
+				,#{item.pID}
+				,#{item.pNM}
+				,#{item.ifMSA}
+				,#{item.ifParamIDs}
+				,#{item.ifParamVals}
+				,#{item.jsonFileNM}
+				,#{item.msaID}
+				,#{item.tableNM}
+				,#{item.ifPSTS}
+				,#{item.results}
+				<choose>
+				  <when test='item.SQLMODE == "oracle"'>
+			    ,SYSDATE
+				  </when>
+				  <otherwise>
+			    ,now()
+				  </otherwise>
+				</choose> 
+			    ,#{item.userUID}
+			    ,#{item.agentID}
+			)
+		</foreach>
+	</insert>
+	
+	<!-- 파일을 읽어드릴 대상에 jobID를 업데이트함. -->
+	<update id="updTblSyncJobRequest4IfPSTS" parameterType="hashmap">
+		UPDATE tbl_syncjobrequest 
+		   SET jobID     = #{uuID}
+			<choose>
+			  <when test='SQLMODE == "oracle"'>
+		     , updateDT  = SYSDATE
+			  </when>
+			  <otherwise>
+		     , updateDT  = now()
+			  </otherwise>
+			</choose> 
+			 , updaterID = #{userUID}	
+			 , ifPSTS    = 'R'	   
+		 WHERE ifPSTS = 'T'
+	</update>
+	
+	<select id="getTblSyncJobRequest" parameterType="hashmap" resultType="hashmap">
+		SELECT
+		     reqUID
+			,pID
+			,pNM
+			,jsonFileNM
+			,targets
+			,ifPSTS
+			,results
+		FROM tbl_syncjobrequest
+		WHERE jobID = #{uuID}
+	</select>
+	
+	<update id="updTblSyncJobRequest" parameterType="hashmap">
+		UPDATE tbl_syncjobrequest
+		   SET 
+			<choose>
+			  <when test='SQLMODE == "oracle"'>
+		     updateDT = SYSDATE
+			  </when>
+			  <otherwise>
+		     updateDT = now()
+			  </otherwise>
+			</choose> 
+			,updaterID = #{userUID}
+		<if test='jsonFileNM != null and jsonFileNM != ""'>
+	        , jsonFileNM = #{jsonFileNM}
+		</if>
+		<if test='ifPSTS != null and ifPSTS != ""'>
+	        , ifPSTS = #{ifPSTS}
+		</if>
+		<if test='results != null and results != ""'>
+	        , results = #{results}
+		</if>
+		<if test='procStartDT != null and procStartDT != ""'>
+			<choose>
+			  <when test='SQLMODE == "oracle"'>
+		    ,procStartDT = SYSDATE
+			  </when>
+			  <otherwise>
+		    ,procStartDT = now()
+			  </otherwise>
+			</choose> 
+		</if>
+		<if test='procEndDT != null and procEndDT != ""'>
+			<choose>
+			  <when test='SQLMODE == "oracle"'>
+		    ,procEndDT = SYSDATE
+			  </when>
+			  <otherwise>
+		    ,procEndDT = now()
+			  </otherwise>
+			</choose> 
+		</if>
+		 WHERE reqUID = #{reqUID}
+	</update>
+	
+	<!-- =================================
+                    사용자 권한 마스터 싱크 쿼리 파트 시작
+	     =================================
+	-->
+	<!-- 사용자 권한 마스터 존재여부 체크 -->
+	<select id="existsTblUserInfo" parameterType="hashmap" resultType="int">
+	<![CDATA[
+		select count(1) from tbl_userAuth where userUID = #{userUID}
+		]]>
+	</select>
+	
+	<insert id="mergeTblUserInfo4Mariadb" parameterType="hashmap">
+		INSERT INTO tbl_userAuth (
+			 userUID
+			,borgUID
+			,roleID
+			,updaterID
+			,updateDT
+			,dbSTS )
+		SELECT 
+			 sb.userUID    ,sb.borgUID   ,sb.roleID   ,sb.updaterID
+			,sb.updateDT   ,sb.dbSTS
+		FROM ( SELECT
+				  userUID    
+				 ,#{borgUID} as borgUID   
+				 ,#{roleID} as roleID
+				 ,'tsync' as updaterID				
+				 ,now() as updateDT     
+				 ,#{dbSTS} as dbSTS
+			 FROM tbl_userAuth
+			WHERE userUID  = #{userUID} ) as sb
+		ON DUPLICATE KEY UPDATE 
+			 dbSTS      = sb.dbSTS
+			,borgUID    = sb.borgUID
+			,roleID     = sb.roleID
+			,updaterID  = sb.updaterID
+			,updateDT   = sb.updateDT
+	</insert>
+	
+	<insert id="mergeTblUserInfo4Oracle" parameterType="hashmap">
+		MERGE INTO tbl_userAuth tt
+		     USING (
+		     	SELECT
+				  userUID    
+				 ,#{borgUID} as borgUID   
+				 ,#{roleID} as roleID
+				 ,'tsync' as updaterID				
+				 ,now() as updateDT     
+				 ,#{dbSTS} as dbSTS
+			 FROM tbl_userAuth
+			WHERE userUID  = #{userUID}  ) sb
+		     ON (
+				 tt.userUID = sb.userUID
+		     ) WHEN MATCHED THEN
+		     	UPDATE
+				 SET tt.dbSTS      = sb.dbSTS
+					,tt.borgUID    = sb.borgUID
+					,tt.roleID     = sb.roleID
+					,tt.updaterID  = sb.updaterID
+					,tt.updateDT   = sb.updateDT	     
+		       WHEN NOT MATCHED THEN
+		        INSERT (
+		 			 tt.userUID
+					,tt.borgUID
+					,tt.roleID
+					,tt.updaterID
+					,tt.updateDT
+					,tt.dbSTS
+				) VALUES (
+		 			 sb.userUID
+					,sb.borgUID
+					,sb.roleID
+					,sb.updaterID
+					,sb.updateDT
+					,sb.dbSTS
+				)
+	</insert>
+
+	<!-- 사용자 권한 마스터 싱크 -->
+	<insert id="insTblUserInfo" parameterType="hashmap">	
+		INSERT INTO tbl_userAuth (
+			 userUID
+			,borgUID
+			,roleID
+			,updaterID
+			,updateDT
+			,dbSTS
+		) VALUES (
+			 #{userUID}
+			,#{borgUID}
+			,#{roleID}
+			,'tsync'
+		<choose>
+		    <when test='SQLMODE == "mariadb"'>
+		    ,now()
+		    </when>
+		    <otherwise>
+			,SYSDATE
+		    </otherwise>
+		</choose>
+			,#{dbSTS}
+		)
+	</insert>
+	
+	<!-- 사용자 권한 마스터 싱크 -->
+	<update id="updTblUserInfo" parameterType="hashmap">
+		update tbl_userAuth set
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	         updateDT = now()
+	    </when>
+	    <otherwise>
+		     updateDT = SYSDATE
+	    </otherwise>
+	</choose>
+	        ,updaterID = 'tsync'
+			,borgUID   = #{borgUID}
+			,roleID    = #{roleID}
+			,dbSTS     = #{dbSTS}
+	    where userUID  = #{userUID}
+	</update>
+    <!-- =================================
+                    사용자 권한 마스터 싱크 쿼리 파트 끝
+	     ================================= 
+	-->
+	
+	<!-- =================================
+                    사용자별 권한 싱크 쿼리 파트 시작
+	     =================================
+	-->
+	<!-- 사용자별 권한 존재여부 체크 -->
+	<select id="existsTblUserPrivs" parameterType="hashmap" resultType="int">
+	<![CDATA[
+		select count(1) from tbl_userPrivs 
+		 where userUID = #{userUID}
+		   and roleID  = #{roleID}
+		   and menuID  = #{menuID}
+		   and pageUID = #{pageUID}
+		   and privID  = #{privID}		   
+		]]>
+	</select>
+
+	<!-- 사용자별 권한 싱크 -->
+	<insert id="insTblUserPrivs" parameterType="hashmap">	
+		INSERT INTO insTblUserPrivs (
+			 privID
+			,menuID
+			,userUID
+			,borgUID
+			,roleID
+			,roleUID
+			,scopeUID
+			,pageID
+			,pageUID
+			,pageNM
+			,privNM
+			,menuNM
+			,linkUri
+			,sortORD
+			,topMenuID
+			,parMenuID
+			,topMenuNM
+			,parMenuNM
+			,topSortORD
+			,parSortORD
+			,agentID
+			,dbSTS
+			,activeImg
+		) VALUES (
+			 #{privID}
+			,#{menuID}
+			,#{userUID}
+			,#{borgUID}
+			,#{roleID}
+			,#{roleUID}
+			,#{scopeUID}
+			,#{pageID}
+			,#{pageUID}
+			,#{pageNM}
+			,#{privNM}
+			,#{menuNM}
+			,#{linkUri}
+			,#{sortORD}
+			,#{topMenuID}
+			,#{parMenuID}
+			,#{topMenuNM}
+			,#{parMenuNM}
+			,#{topSortORD}
+			,#{parSortORD}
+			,#{agentID}
+			,#{dbSTS}
+			,#{activeImg}
+		)
+	</insert>
+	
+	<!-- 사용자  마스터 싱크 -->
+	<update id="updTblUserPrivs" parameterType="hashmap">
+		update tbl_userPrivs set
+			 dbSTS      = #{dbSTS}
+			,agentID    = #{agentID}
+			,borgUID    = #{borgUID}
+			,scopeUID   = #{scopeUID}
+			,pageNM     = #{pageNM}
+			,privNM     = #{privNM}
+			,menuNM     = #{menuNM}
+			,linkUri    = #{linkUri}
+			,sortORD    = #{sortORD}
+			,topMenuID  = #{topMenuID}
+			,parMenuID  = #{parMenuID}
+			,topMenuNM  = #{topMenuNM}
+			,parMenuNM  = #{parMenuNM}			
+			,topSortORD = #{topSortORD}
+			,parSortORD = #{parSortORD}
+			,activeImg  = #{activeImg}
+		 where
+	<choose>
+	    <when test='userUID != null and userUID != ""'>
+	           userUID  = #{userUID}
+	       and roleID = #{roleID}
+	    </when>
+	    <otherwise>
+		       roleID = #{roleID}
+	    </otherwise>
+	</choose>
+		   and menuID   = #{menuID}
+		   and page ID  = #{pageID}
+		   and privID   = #{privID}	
+	</update>
+	
+	<insert id="insTblUserPrivsHist" parameterType="hashmap">
+		INSERT INTO tbl_userPrivsHist (
+			 bakDT
+			,privID       ,menuID      ,userUID      ,borgUID
+			,roleID       ,roleUID     ,scopeUID     ,pageID
+			,pageUID      ,pageNM      ,privNM       ,menuNM
+			,linkUri      ,sortORD     ,topMenuID    ,parMenuID
+			,topMenuNM    ,parMenuNM   ,topSortORD   ,parSortORD
+			,agentID      ,dbSTS       ,activeImg	
+		) 
+		SELECT 
+		<choose>
+		    <when test='SQLMODE == "mariadb"'>
+		         now()
+		    </when>
+		    <otherwise>
+			     SYSDATE
+		    </otherwise>
+		</choose>
+			,sb.privID    ,sb.menuID   ,sb.userUID   ,sb.borgUID
+			,sb.roleID    ,sb.roleUID  ,sb.scopeUID  ,sb.pageID
+			,sb.pageUID   ,sb.pageNM   ,sb.privNM    ,sb.menuNM
+			,sb.linkUri   ,sb.sortORD  ,sb.topMenuID ,sb.parMenuID
+			,sb.topMenuNM ,sb.parMenuNM,sb.topSortORD,sb.parSortORD
+			,sb.agentID   ,sb.dbSTS    ,sb.activeImg
+		from tbl_userPrivs sb
+		where sb.userUID = #{userUID}
+ 	</insert>  
+ 	
+ 	<!-- 사용자권한 변경 정보 삭제 싱크 -->
+	<delete id="delTblUserPrivs4User" parameterType="hashmap">
+		delete from tbl_userPrivs
+		 where userUID = #{userUID}
+	</delete>
+		
+	
+	<!-- 사용자별 권한 정보 삭제 싱크 -->
+	<delete id="delTblUserPrivs" parameterType="hashmap">
+		delete from tbl_userPrivs
+		 where 
+	<choose>
+	    <when test='userUID != null and userUID != ""'>
+	           userUID  = #{userUID}
+	       and roleID = #{roleID}
+	    </when>
+	    <otherwise>
+		       roleID = #{roleID}
+	    </otherwise>
+	</choose>
+		   and menuID = #{menuID}
+		   and pageID = #{pageID}
+		   and privID = #{privID}
+	</delete>
+
+	<insert id="mergeTblUserPrivs4Mariadb" parameterType="hashmap">
+		INSERT INTO tbl_userPrivs (
+			 privID       ,menuID      ,userUID      ,borgUID
+			,roleID       ,roleUID     ,scopeUID     ,pageID
+			,pageUID      ,pageNM      ,privNM       ,menuNM
+			,linkUri      ,sortORD     ,topMenuID    ,parMenuID
+			,topMenuNM    ,parMenuNM   ,topSortORD   ,parSortORD
+			,agentID      ,dbSTS       ,activeImg	
+		) 
+		SELECT 
+			 sb.privID    ,sb.menuID   ,sb.userUID   ,sb.borgUID
+			,sb.roleID    ,sb.roleUID  ,sb.scopeUID  ,sb.pageID
+			,sb.pageUID   ,sb.pageNM   ,sb.privNM    ,sb.menuNM
+			,sb.linkUri   ,sb.sortORD  ,sb.topMenuID ,sb.parMenuID
+			,sb.topMenuNM ,sb.parMenuNM,sb.topSortORD,sb.parSortORD
+			,sb.agentID   ,sb.dbSTS    ,sb.activeImg
+		FROM ( SELECT
+				 CC.privID     ,CC.menuID     ,AA.userUID     ,AA.borgUID
+				,AA.roleID     ,CC.roleUID    ,CC.scopeUID    ,CC.pageID
+				,CC.pageUID    ,CC.pageNM     ,CC.privNM      ,CC.menuNM
+				,CC.linkUri    ,CC.sortORD    ,CC.topMenuID   ,CC.parMenuID
+				,CC.topMenuNM  ,CC.parMenuNM  ,CC.topSortORD  ,CC.parSortORD
+				,CC.agentID    ,'Y' AS dbSTS  ,CC.activeImg
+			 FROM tbl_userAuth AA 
+			      INNER JOIN tbl_rolescopesif CC ON AA.roleID = CC.roleID
+			WHERE 
+			      AA.roleID  = #{roleID}
+			  AND CC.roleID  = #{roleID}
+			  AND CC.menuID  = #{menuID}
+			  AND CC.pageID  = #{pageID}
+			  AND CC.privID  = #{privID}
+			  AND CC.bakUID  = #{bakUID}  ) as sb
+		ON DUPLICATE KEY UPDATE 
+			 dbSTS      = sb.dbSTS
+			,agentID    = sb.agentID
+			,borgUID    = sb.borgUID
+			,scopeUID   = sb.scopeUID
+			,pageNM     = sb.pageNM
+			,privNM     = sb.privNM
+			,menuNM     = sb.menuNM
+			,linkUri    = sb.linkUri
+			,sortORD    = sb.sortORD
+			,topMenuID  = sb.topMenuID
+			,parMenuID  = sb.parMenuID
+			,topMenuNM  = sb.topMenuNM
+			,parMenuNM  = sb.parMenuNM			
+			,topSortORD = sb.topSortORD
+			,parSortORD = sb.parSortORD
+			,activeImg  = sb.activeImg
+	</insert>
+	
+	<insert id="mergeTblUserPrivs4Oracle" parameterType="hashmap">
+		MERGE INTO tbl_userPrivs tt
+		     USING (
+		     	SELECT
+					 CC.privID     ,CC.menuID     ,AA.userUID     ,AA.borgUID
+					,AA.roleID     ,CC.roleUID    ,CC.scopeUID    ,CC.pageID
+					,CC.pageUID    ,CC.pageNM     ,CC.privNM      ,CC.menuNM
+					,CC.linkUri    ,CC.sortORD    ,CC.topMenuID   ,CC.parMenuID
+					,CC.topMenuNM  ,CC.parMenuNM  ,CC.topSortORD  ,CC.parSortORD
+					,CC.agentID    ,'Y' AS dbSTS  ,CC.activeImg
+				 FROM tbl_userAuth AA 
+				      INNER JOIN tbl_rolescopesif CC ON AA.roleID = CC.roleID
+				WHERE 
+				      AA.roleID  = #{roleID}
+				  AND CC.roleID  = #{roleID}
+				  AND CC.menuID  = #{menuID}
+				  AND CC.pageID  = #{pageID}
+				  AND CC.privID  = #{privID}
+				  AND CC.bakUID  = #{bakUID}		     
+		     ) sb
+		     ON (
+				      tt.userUID = sb.userUID
+				  AND tt.roleID  = sb.roleID
+				  AND tt.menuID  = sb.menuID
+				  AND tt.pageID  = sb.pageID
+				  AND tt.privID  = sb.privID
+		     ) WHEN MATCHED THEN
+		     	UPDATE
+				 SET tt.dbSTS      = sb.dbSTS
+					,tt.agentID    = sb.agentID
+					,tt.borgUID    = sb.borgUID
+					,tt.scopeUID   = sb.scopeUID
+					,tt.pageNM     = sb.pageNM
+					,tt.privNM     = sb.privNM
+					,tt.menuNM     = sb.menuNM
+					,tt.linkUri    = sb.linkUri
+					,tt.sortORD    = sb.sortORD
+					,tt.topMenuID  = sb.topMenuID
+					,tt.parMenuID  = sb.parMenuID
+					,tt.topMenuNM  = sb.topMenuNM
+					,tt.parMenuNM  = sb.parMenuNM			
+					,tt.topSortORD = sb.topSortORD
+					,tt.parSortORD = sb.parSortORD
+					,tt.activeImg  = sb.activeImg		     
+		       WHEN NOT MATCHED THEN
+		        INSERT (
+					 tt.privID    ,tt.menuID    ,tt.userUID    ,tt.borgUID
+					,tt.roleID    ,tt.roleUID   ,tt.scopeUID   ,tt.pageID
+					,tt.pageUID   ,tt.pageNM    ,tt.privNM     ,tt.menuNM
+					,tt.linkUri   ,tt.sortORD   ,tt.topMenuID  ,tt.parMenuID
+					,tt.topMenuNM ,tt.parMenuNM ,tt.topSortORD ,tt.parSortORD
+					,tt.agentID   ,tt.dbSTS     ,tt.activeImg	
+				) VALUES (
+					 sb.privID    ,sb.menuID    ,sb.userUID    ,sb.borgUID
+					,sb.roleID    ,sb.roleUID   ,sb.scopeUID   ,sb.pageID
+					,sb.pageUID   ,sb.pageNM    ,sb.privNM     ,sb.menuNM
+					,sb.linkUri   ,sb.sortORD   ,sb.topMenuID  ,sb.parMenuID
+					,sb.topMenuNM ,sb.parMenuNM ,sb.topSortORD ,sb.parSortORD
+					,sb.agentID   ,sb.dbSTS     ,sb.activeImg
+				)
+	</insert>
+	
+	<insert id="mergeTblUserAuth4Mariadb" parameterType="hashmap">
+		INSERT INTO tbl_userPrivs (
+			 privID       ,menuID      ,userUID      ,borgUID
+			,roleID       ,roleUID     ,scopeUID     ,pageID
+			,pageUID      ,pageNM      ,privNM       ,menuNM
+			,linkUri      ,sortORD     ,topMenuID    ,parMenuID
+			,topMenuNM    ,parMenuNM   ,topSortORD   ,parSortORD
+			,agentID      ,dbSTS       ,activeImg	
+		) 
+		SELECT 
+			 sb.privID    ,sb.menuID   ,sb.userUID   ,sb.borgUID
+			,sb.roleID    ,sb.roleUID  ,sb.scopeUID  ,sb.pageID
+			,sb.pageUID   ,sb.pageNM   ,sb.privNM    ,sb.menuNM
+			,sb.linkUri   ,sb.sortORD  ,sb.topMenuID ,sb.parMenuID
+			,sb.topMenuNM ,sb.parMenuNM,sb.topSortORD,sb.parSortORD
+			,sb.agentID   ,sb.dbSTS    ,sb.activeImg
+		FROM ( SELECT
+				 DD.privID     ,DD.menuID     ,AA.userUID     ,AA.borgUID
+				,AA.roleID     ,CC.roleUID    ,DD.scopeUID    ,EE.pageID
+				,DD.pageUID    ,EE.pageNM     ,DD.privNM      ,FF.menuNM
+				,FF.linkUri    ,FF.sortORD    
+				,GG.menuID AS topMenuID   
+				,HH.menuID AS parMenuID
+				,GG.menuNM AS topMenuNM  
+				,HH.menuNM AS parMenuNM  
+				,GG.sortORD AS topSortORD  
+				,HH.sortORD AS parSortORD
+				,CC.agentID    ,'Y' AS dbSTS  ,DD.activeImg
+			 FROM tbl_userAuth AA 
+			      INNER JOIN tbl_rolescopes CC ON AA.roleID = CC.roleID
+			      INNER JOIN tbl_scopeacts DD ON CC.scopeUID = DD.scopeUID
+			      INNER JOIN tbl_pages EE ON DD.pageUID = EE.pageUID
+			      INNER JOIN tbl_menus FF ON DD.menuUID = FF.menuUID
+			      INNER JOIN tbl_menus GG ON GG.menuUID = FF.topMenuID
+			      INNER JOIN tbl_menus HH ON HH.menuUID = FF.parMenuID
+			WHERE 
+			      AA.userUID = #{userUID}
+			  AND AA.roleID  = #{roleID}) as sb
+		ON DUPLICATE KEY UPDATE 
+			 dbSTS      = sb.dbSTS
+			,agentID    = sb.agentID
+			,borgUID    = sb.borgUID
+			,scopeUID   = sb.scopeUID
+			,pageNM     = sb.pageNM
+			,privNM     = sb.privNM
+			,menuNM     = sb.menuNM
+			,linkUri    = sb.linkUri
+			,sortORD    = sb.sortORD
+			,topMenuID  = sb.topMenuID
+			,parMenuID  = sb.parMenuID
+			,topMenuNM  = sb.topMenuNM
+			,parMenuNM  = sb.parMenuNM			
+			,topSortORD = sb.topSortORD
+			,parSortORD = sb.parSortORD
+			,activeImg  = sb.activeImg
+	</insert>
+	
+	<insert id="mergeTblUserAuth4Oracle" parameterType="hashmap">
+		MERGE INTO tbl_userPrivs tt
+		     USING (
+				SELECT
+					 DD.privID     ,DD.menuID     ,AA.userUID     ,AA.borgUID
+					,AA.roleID     ,CC.roleUID    ,DD.scopeUID    ,EE.pageID
+					,DD.pageUID    ,EE.pageNM     ,DD.privNM      ,FF.menuNM
+					,FF.linkUri    ,FF.sortORD    
+					,GG.menuID AS topMenuID   
+					,HH.menuID AS parMenuID
+					,GG.menuNM AS topMenuNM  
+					,HH.menuNM AS parMenuNM  
+					,GG.sortORD AS topSortORD  
+					,HH.sortORD AS parSortORD
+					,CC.agentID    ,'Y' AS dbSTS  ,DD.activeImg
+				 FROM tbl_userAuth AA 
+				      INNER JOIN tbl_rolescopes CC ON AA.roleID = CC.roleID
+				      INNER JOIN tbl_scopeacts DD ON CC.scopeUID = DD.scopeUID
+				      INNER JOIN tbl_pages EE ON DD.pageUID = EE.pageUID
+				      INNER JOIN tbl_menus FF ON DD.menuUID = FF.menuUID
+				      INNER JOIN tbl_menus GG ON GG.menuUID = FF.topMenuID
+				      INNER JOIN tbl_menus HH ON HH.menuUID = FF.parMenuID
+				WHERE 
+				      AA.userUID = #{userUID}
+				  AND AA.roleID  = #{roleID}
+		     ) sb
+		     ON (
+				      tt.userUID = sb.userUID
+				  AND tt.roleID  = sb.roleID
+				  AND tt.menuID  = sb.menuID
+				  AND tt.pageID  = sb.pageID
+				  AND tt.privID  = sb.privID
+		     ) WHEN MATCHED THEN
+		     	UPDATE
+				 SET tt.dbSTS      = sb.dbSTS
+					,tt.agentID    = sb.agentID
+					,tt.borgUID    = sb.borgUID
+					,tt.scopeUID   = sb.scopeUID
+					,tt.pageNM     = sb.pageNM
+					,tt.privNM     = sb.privNM
+					,tt.menuNM     = sb.menuNM
+					,tt.linkUri    = sb.linkUri
+					,tt.sortORD    = sb.sortORD
+					,tt.topMenuID  = sb.topMenuID
+					,tt.parMenuID  = sb.parMenuID
+					,tt.topMenuNM  = sb.topMenuNM
+					,tt.parMenuNM  = sb.parMenuNM			
+					,tt.topSortORD = sb.topSortORD
+					,tt.parSortORD = sb.parSortORD
+					,tt.activeImg  = sb.activeImg		     
+		       WHEN NOT MATCHED THEN
+		        INSERT (
+					 tt.privID    ,tt.menuID    ,tt.userUID    ,tt.borgUID
+					,tt.roleID    ,tt.roleUID   ,tt.scopeUID   ,tt.pageID
+					,tt.pageUID   ,tt.pageNM    ,tt.privNM     ,tt.menuNM
+					,tt.linkUri   ,tt.sortORD   ,tt.topMenuID  ,tt.parMenuID
+					,tt.topMenuNM ,tt.parMenuNM ,tt.topSortORD ,tt.parSortORD
+					,tt.agentID   ,tt.dbSTS     ,tt.activeImg	
+				) VALUES (
+					 sb.privID    ,sb.menuID    ,sb.userUID    ,sb.borgUID
+					,sb.roleID    ,sb.roleUID   ,sb.scopeUID   ,sb.pageID
+					,sb.pageUID   ,sb.pageNM    ,sb.privNM     ,sb.menuNM
+					,sb.linkUri   ,sb.sortORD   ,sb.topMenuID  ,sb.parMenuID
+					,sb.topMenuNM ,sb.parMenuNM ,sb.topSortORD ,sb.parSortORD
+					,sb.agentID   ,sb.dbSTS     ,sb.activeImg
+				)
+	</insert>
+    <!-- =================================
+                    사용자별 권한 싱크 쿼리 파트 끝
+	     ================================= 
+	-->
+    <!-- 연계작업 목록 조회  -->
+	<select id="getTblSyncJobList" parameterType="hashmap" resultType="hashmap">
+	<![CDATA[
+		SELECT
+			 ifUID
+			,agentID
+			,pID
+			,ifMSA
+			,ifParamIDs
+			,pNM
+			,type
+			,methodNM
+			,tableNM
+			,targets
+			,functionNM
+		 FROM tbl_syncjob
+		WHERE agentID = #{agentID} and pID = #{pID}  
+		]]>
+	</select>
+</mapper>

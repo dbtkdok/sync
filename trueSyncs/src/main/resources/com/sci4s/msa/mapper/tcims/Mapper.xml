@@ -1,0 +1,1255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sci4s.msa.mapper.tcims.TCimsMapper">
+
+	<!-- uuID -->
+	<select id="getUUID" parameterType="hashmap" resultType="hashmap">
+		<choose>
+		  <when test='SQLMODE == "mariadb"'>
+			SELECT getUUID('tbl_uuids') AS uuID
+		  </when>
+		  <otherwise>
+		  	SELECT seq_uuid.nextval AS uuID FROM DUAL
+		  </otherwise>
+		</choose>
+	</select>
+
+    <!-- =================================
+                    공통코드 싱크 쿼리 파트 시작
+	     ================================= 
+	-->
+	<!-- 공통코드 존재여부 체크 -->
+	<select id="existsTblCodes" parameterType="hashmap" resultType="int">
+	<![CDATA[
+		select count(1) from tbl_codes
+	     where agentID  = #{agentID}
+	       and nationCD = #{nationCD}
+	       and codeType = #{codeType}
+	       and codeID   = #{codeID}
+		]]>
+	</select>
+
+	<!-- 공통코드 마스터 싱크 -->
+	<insert id="insTblCodes" parameterType="hashmap">
+		insert into tbl_codes (
+		 agentID
+		,codeType
+		,codeTypeNM
+		,codeID
+		,nationCD
+	<if test='refCodeID != null and refCodeID != ""'>
+		,refCodeID
+	</if>
+	<if test='val1 != null and val1 != ""'>
+		,val1
+	</if>
+	<if test='val2 != null and val2 != ""'>
+		,val2
+	</if>
+	<if test='val3 != null and val3 != ""'>
+		,val3
+	</if>
+		,createDT
+		,createrID
+		,dbSTS
+		,sortORD
+		) values (
+		 #{agentID}
+		,#{codeType}
+		,#{codeTypeNM}
+		,#{codeID}
+		,#{nationCD}
+	<if test='refCodeID != null and refCodeID != ""'>
+		,#{refCodeID}
+	</if>
+	<if test='val1 != null and val1 != ""'>
+		,#{val1}
+	</if>
+	<if test='val2 != null and val2 != ""'>
+		,#{val2}
+	</if>
+	<if test='val3 != null and val3 != ""'>
+		,#{val3}
+	</if>
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	    ,now()
+	    </when>
+	    <otherwise>
+		,SYSDATE
+	    </otherwise>
+	</choose>
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	    ,IFNULL(#{createrID},'system')
+	    </when>
+	    <otherwise>
+		,NVL(#{createrID},'system')
+	    </otherwise>
+	</choose>
+		,#{dbSTS}
+		,#{sortORD}
+		)
+	</insert>
+	
+	<!-- 공통코드 마스터 싱크 -->
+	<update id="updTblCodes" parameterType="hashmap">
+		update tbl_codes set
+		     codeTypeNM = #{codeTypeNM}
+			,refCodeID  = #{refCodeID}
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	        ,createrID  = IFNULL(#{createrID},'system')
+	    </when>
+	    <otherwise>
+		    ,createrID  = NVL(#{createrID},'system')
+	    </otherwise>
+	</choose>
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	        ,createDT  = now()
+	    </when>
+	    <otherwise>
+		    ,createDT  = SYSDATE
+	    </otherwise>
+	</choose>
+			,val1      = #{val1}
+			,val2      = #{val2}
+			,val3      = #{val3}
+			,dbSTS     = #{dbSTS}
+			,sortORD   = #{sortORD}
+	    where agentID  = #{agentID}
+	      and nationCD = #{nationCD}
+	      and codeType = #{codeType}
+	      and codeID   = #{codeID}
+	</update>
+    <!-- =================================
+                    공통코드 싱크 쿼리 파트 끝
+	     ================================= 
+	-->
+	
+	<!-- =================================
+                    부서 마스터 싱크 쿼리 파트 시작
+	     ================================= 
+	-->
+	<!-- 고객사 존재여부 체크 -->
+	<select id="existsTblBorgs" parameterType="hashmap" resultType="int">
+	<![CDATA[
+		select count(1) from tbl_borgs where borgUID = #{borgUID}
+		]]>
+	</select>
+
+	<!-- 부서 마스터 싱크 -->
+	<insert id="insTblBorgs" parameterType="hashmap">
+		insert into tbl_borgs (
+		 borgUID
+		,custID
+		,borgID
+		,borgNM
+	<if test='zipCD != null and zipCD != ""'>
+		,zipCD
+	</if>
+	<if test='addr1 != null and addr1 != ""'>
+		,addr1
+	</if>
+	<if test='addr2 != null and addr2 != ""'>
+		,addr2
+	</if>
+	<if test='telNO != null and telNO != ""'>
+		,telNO
+	</if>
+		,createDT
+		,createrID
+		,dbSTS
+		,agentID
+		) values (
+		 #{borgUID}
+		,#{custID}
+		,#{borgID}
+		,#{borgNM}
+	<if test='zipCD != null and zipCD != ""'>
+		,#{zipCD}
+	</if>
+	<if test='addr1 != null and addr1 != ""'>
+		,#{addr1}
+	</if>
+	<if test='addr2 != null and addr2 != ""'>
+		,#{addr2}
+	</if>
+	<if test='telNO != null and telNO != ""'>
+		,#{telNO}
+	</if>
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	    ,now()
+	    </when>
+	    <otherwise>
+		,sysdate
+	    </otherwise>
+	</choose>
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	    ,IFNULL(#{createrID},'system')
+	    </when>
+	    <otherwise>
+		,NVL(#{createrID},'system')
+	    </otherwise>
+	</choose>
+		,#{dbSTS}
+		,#{agentID}
+		)
+	</insert>
+	
+	<!-- 부서 마스터 싱크 -->
+	<update id="updTblBorgs" parameterType="hashmap" >
+		update tbl_borgs set
+		     borgNM    = #{borgNM}
+		    ,zipCD     = #{zipCD}
+			,addr1     = #{addr1}
+			,addr2     = #{addr2}
+			,telNO     = #{telNO}
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	        ,updaterID  = IFNULL(#{updaterID},'system')
+	    </when>
+	    <otherwise>
+		    ,updaterID  = NVL(#{updaterID},'system')
+	    </otherwise>
+	</choose>
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	        ,updateDT  = now()
+	    </when>
+	    <otherwise>
+		    ,updateDT  = sysdate
+	    </otherwise>
+	</choose>
+			,dbSTS     = #{dbSTS}
+	    where borgUID  = #{borgUID}
+	</update>
+    <!-- =================================
+                    부서 마스터 싱크 쿼리 파트 끝
+	     ================================= 
+	-->
+	
+	<!-- =================================
+                    고객사 마스터 싱크 쿼리 파트 시작
+	     ================================= 
+	-->
+	<!-- 고객사 존재여부 체크 -->
+	<select id="existsTblCustInfo" parameterType="hashmap" resultType="int">
+	<![CDATA[
+		select count(1) from tbl_custinfo where custID = #{custID}
+		]]>
+	</select>
+
+	<!-- 고객사 마스터 싱크 -->
+	<insert id="insTblCustInfo" parameterType="hashmap">
+		insert into tbl_custinfo (
+		 custID
+		,repCustID
+		,custGB
+		,custNM
+		,bizNO
+	<if test='telNO != null and telNO != ""'>
+		,telNO
+	</if>
+	<if test='faxNO != null and faxNO != ""'>
+		,faxNO
+	</if>
+	<if test='zipCD != null and zipCD != ""'>
+		,zipCD
+	</if>
+	<if test='addr1 != null and addr1 != ""'>
+		,addr1
+	</if>
+	<if test='addr2 != null and addr2 != ""'>
+		,addr2
+	</if>
+		,repNM
+	<if test='eMail != null and eMail != ""'>
+		,eMail
+	</if>
+	<if test='prefix != null and prefix != ""'>
+		,prefix
+	</if>
+	<if test='warantyRate != null and warantyRate != ""'>
+		,warantyRate
+	</if>
+	<if test='leadTime != null and leadTime != ""'>
+		,leadTime
+	</if>
+	<if test='barcodeUse != null and barcodeUse != ""'>
+		,barcodeUse
+	</if>
+	<if test='makerChkGB != null and makerChkGB != ""'>
+		,makerChkGB
+	</if>
+	<if test='vatGB != null and vatGB != ""'>
+		,vatGB
+	</if>
+	<if test='bizCon != null and bizCon != ""'>
+		,bizCon
+	</if>
+	<if test='bizTP != null and bizTP != ""'>
+		,bizTP
+	</if>
+		,createDT
+		,createrID
+		,dbSTS
+		,agentID
+		) values (
+		 #{custID}
+		,#{repCustID}
+		,#{custGB}
+		,#{custNM}
+		,#{bizNO}
+	<if test='telNO != null and telNO != ""'>
+		,#{telNO}
+	</if>
+	<if test='faxNO != null and faxNO != ""'>
+		,#{faxNO}
+	</if>
+	<if test='zipCD != null and zipCD != ""'>
+		,#{zipCD}
+	</if>
+	<if test='addr1 != null and addr1 != ""'>
+		,#{addr1}
+	</if>
+	<if test='addr2 != null and addr2 != ""'>
+		,#{addr2}
+	</if>
+		,#{repNM}
+	<if test='eMail != null and eMail != ""'>
+		,#{eMail}
+	</if>
+	<if test='prefix != null and prefix != ""'>
+		,#{prefix}
+	</if>
+	<if test='warantyRate != null and warantyRate != ""'>
+		,#{warantyRate}
+	</if>
+	<if test='leadTime != null and leadTime != ""'>
+		,#{leadTime}
+	</if>
+	<if test='barcodeUse != null and barcodeUse != ""'>
+		,#{barcodeUse}
+	</if>
+	<if test='makerChkGB != null and makerChkGB != ""'>
+		,#{makerChkGB}
+	</if>
+	<if test='vatGB != null and vatGB != ""'>
+		,#{vatGB}
+	</if>
+	<if test='bizCon != null and bizCon != ""'>
+		,#{bizCon}
+	</if>
+	<if test='bizTP != null and bizTP != ""'>
+		,#{bizTP}
+	</if>
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	    ,now()
+	    </when>
+	    <otherwise>
+		,sysdate
+	    </otherwise>
+	</choose>
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	    ,IFNULL(#{createrID},'system')
+	    </when>
+	    <otherwise>
+		,NVL(#{createrID},'system')
+	    </otherwise>
+	</choose>
+		,#{dbSTS}
+		,#{agentID}
+		)
+	</insert>
+	
+	<!-- 고객사 마스터 싱크 -->
+	<update id="updTblCustInfo" parameterType="hashmap">
+		update tbl_custinfo set
+		     custNM     = #{custNM}
+		    ,repCustID  = #{repCustID}
+			,custGB     = #{custGB}
+			,custNM     = #{custNM}
+			,bizNO      = #{bizNO}
+			,telNO      = #{telNO}
+			,faxNO      = #{faxNO}
+			,zipCD      = #{zipCD}
+			,addr1      = #{addr1}
+			,addr2      = #{addr2}
+			,repNM      = #{repNM}
+			,eMail      = #{eMail}
+			,dbSTS      = #{dbSTS}
+			,prefix     = #{prefix}
+			,warantyRate= #{warantyRate}
+			,leadTime   = #{leadTime}
+			,barcodeUse = #{barcodeUse}
+			,makerChkGB = #{makerChkGB}
+			,vatGB      = #{vatGB}
+			,bizCon     = #{bizCon}
+			,bizTP      = #{bizTP}
+	    where custID    = #{custID}
+	</update>
+    <!-- =================================
+                    고객사 마스터 싱크 쿼리 파트 끝
+	     ================================= 
+	-->
+	
+	<!-- =================================
+                    고객협력사 마스터 싱크 쿼리 파트 시작
+	     ================================= 
+	-->
+	<!-- 고객협력사 존재여부 체크 -->
+	<select id="existsTblCustVdInfo" parameterType="hashmap" resultType="int">
+	<![CDATA[
+		select count(1) from tbl_custvdinfo where vdUID = #{vdUID}
+		]]>
+	</select>
+
+	<!-- 고객협력사 마스터 싱크 -->
+	<insert id="insTblCustVdInfo" parameterType="hashmap">	
+		INSERT INTO tbl_custvdinfo (
+		 vdUID
+		,custID
+		,vdID
+		,custVdID
+	<if test='buyCardGB != null and buyCardGB != ""'>
+		,buyCardGB
+	</if>
+		,dbSTS
+		,agentID
+		,createDT
+		,createrID
+		) values (
+		 #{vdUID}
+		,#{custID}
+		,#{vdID}
+		,#{custVdID}
+	<if test='buyCardGB != null and buyCardGB != ""'>
+		,#{buyCardGB}
+	</if>
+		,#{dbSTS}
+		,#{agentID}
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	    ,now()
+	    </when>
+	    <otherwise>
+		,SYSDATE
+	    </otherwise>
+	</choose>
+		,'tsync'
+		)
+	</insert>
+	
+	<!-- 고객협력사 마스터 싱크 -->
+	<update id="updTblCustVdInfo" parameterType="hashmap">
+		update tbl_custvdinfo set
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	     updateDT = now()
+	    </when>
+	    <otherwise>
+		 updateDT = SYSDATE
+	    </otherwise>
+	</choose>
+	    ,updaterID      = 'tsync'
+		,buyCardGB      = #{buyCardGB}
+		,dbSTS          = #{dbSTS}
+	    where vdUID     = #{vdUID}
+	</update>
+    <!-- =================================
+                    고객협력사 마스터 싱크 쿼리 파트 끝
+	     ================================= 
+	-->
+	
+	<!-- =================================
+                    협력사 마스터 싱크 쿼리 파트 시작
+	     ================================= 
+	-->
+	<!-- 협력사 존재여부 체크 -->
+	<select id="existsTblVdInfo" parameterType="hashmap" resultType="int">
+	<![CDATA[
+		select count(1) from tbl_vdinfo where vdUID = #{vdUID}
+		]]>
+	</select>
+
+	<!-- 협력사 마스터 싱크 -->
+	<insert id="insTblVdInfo" parameterType="hashmap">	
+		INSERT INTO tbl_vdinfo (
+		 vdUID
+		,agentID
+		,vdID
+		,vdNM
+	<if test='vdNMEng != null and vdNMEng != ""'>
+		,vdNMEng
+	</if>
+	<if test='bizNO != null and bizNO != ""'>
+		,bizNO
+	</if>
+	<if test='bizTP != null and bizTP != ""'>
+		,bizTP
+	</if>
+	<if test='bizCon != null and bizCon != ""'>
+		,bizCon
+	</if>
+	<if test='telNo != null and telNo != ""'>
+		,telNo
+	</if>
+	<if test='faxNo != null and faxNo != ""'>
+		,faxNo
+	</if>
+	<if test='zipCD != null and zipCD != ""'>
+		,zipCD
+	</if>
+	<if test='addr1 != null and addr1 != ""'>
+		,addr1
+	</if>
+	<if test='addr2 != null and addr2 != ""'>
+		,addr2
+	</if>
+	<if test='repNM != null and repNM != ""'>
+		,repNM
+	</if>
+	<if test='repSex != null and repSex != ""'>
+		,repSex
+	</if>
+	<if test='bigCompGB != null and bigCompGB != ""'>
+		,bigCompGB
+	</if>
+	<if test='docuGB != null and docuGB != ""'>
+		,docuGB
+	</if>
+	<if test='sign != null and sign != ""'>
+		,sign
+	</if>
+	<if test='userDN != null and userDN != ""'>
+		,userDN
+	</if>
+		,createrID
+		,createDT
+		,dbSTS
+		) VALUES (
+		 #{vdUID}
+		,#{agentID}
+		,#{vdID}
+		,#{vdNM}
+	<if test='vdNMEng != null and vdNMEng != ""'>
+		,#{vdNMEng}
+	</if>
+	<if test='bizNO != null and bizNO != ""'>
+		,#{bizNO}
+	</if>
+	<if test='bizTP != null and bizTP != ""'>
+		,#{bizTP}
+	</if>
+	<if test='bizCon != null and bizCon != ""'>
+		,#{bizCon}
+	</if>
+	<if test='telNo != null and telNo != ""'>
+		,#{telNo}
+	</if>
+	<if test='faxNo != null and faxNo != ""'>
+		,#{faxNo}
+	</if>
+	<if test='zipCD != null and zipCD != ""'>
+		,#{zipCD}
+	</if>
+	<if test='addr1 != null and addr1 != ""'>
+		,#{addr1}
+	</if>
+	<if test='addr2 != null and addr2 != ""'>
+		,#{addr2}
+	</if>
+	<if test='repNM != null and repNM != ""'>
+		,#{repNM}
+	</if>
+	<if test='repSex != null and repSex != ""'>
+		,#{repSex}
+	</if>
+	<if test='bigCompGB != null and bigCompGB != ""'>
+		,#{bigCompGB}
+	</if>
+	<if test='docuGB != null and docuGB != ""'>
+		,#{docuGB}
+	</if>
+	<if test='sign != null and sign != ""'>
+		,#{sign}
+	</if>
+	<if test='userDN != null and userDN != ""'>
+		,#{userDN}
+	</if>
+        ,'tsync'
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	    ,now()
+	    </when>
+	    <otherwise>
+		,SYSDATE
+	    </otherwise>
+	</choose>
+		,#{dbSTS}
+		)
+	</insert>
+	
+	<!-- 협력사 마스터 싱크 -->
+	<update id="updTblVdInfo" parameterType="hashmap">
+		update tbl_vdinfo set
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	     updateDT = now()
+	    </when>
+	    <otherwise>
+		 updateDT = SYSDATE
+	    </otherwise>
+	</choose>
+	    ,updaterID = 'tsync'
+	    ,vdNM      = #{vdNM}
+		,vdNMEng   = #{vdNMEng}
+		,bizNO     = #{bizNO}
+		,bizTP     = #{bizTP}
+		,bizCon    = #{bizCon}
+		,telNo     = #{telNo}
+		,faxNo     = #{faxNo}
+		,zipCD     = #{zipCD}
+		,addr1     = #{addr1}
+		,addr2     = #{addr2}
+		,repNM     = #{repNM}
+		,repSex    = #{repSex}
+		,bigCompGB = #{bigCompGB}
+		,docuGB    = #{docuGB}
+		,sign      = #{sign}
+		,userDN    = #{userDN}
+		,dbSTS     = #{dbSTS}
+	    where vdUID= #{vdUID}
+	</update>
+    <!-- =================================
+                    협력사 마스터 싱크 쿼리 파트 끝
+	     ================================= 
+	-->
+	
+	<!-- =================================
+                    협력사 거래 고객사 마스터 싱크 쿼리 파트 시작
+	     ================================= 
+	-->
+	<!-- 협력사 거래 고객사 존재여부 체크 -->
+	<select id="existsTblVdPartners" parameterType="hashmap" resultType="int">
+	<![CDATA[
+		select count(1) from tbl_vdpartners where agentID = #{agentID} AND vdID = #{vdID} AND custID = #{custID}
+		]]>
+	</select>
+
+	<!-- 협력사 마스터 싱크 -->
+	<insert id="insTblVdPartners" parameterType="hashmap">	
+		INSERT INTO tbl_vdpartners (
+			 vdID
+			,custID
+			,custNM
+			,dbSTS
+			,createrID
+			,createDT
+			,agentID
+		) VALUES (
+			 #{vdID}
+			,#{custID}
+			,#{custNM}
+			,#{dbSTS}
+			,'tsync'
+		<choose>
+		    <when test='SQLMODE == "mariadb"'>
+		    ,now()
+		    </when>
+		    <otherwise>
+			,SYSDATE
+		    </otherwise>
+		</choose>
+			,#{agentID}
+		)
+	</insert>
+	
+	<!-- 협력사 거래  마스터 싱크 -->
+	<update id="updTblVdPartners" parameterType="hashmap">
+		update tbl_vdpartners set 
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	         updateDT = now()
+	    </when>
+	    <otherwise>
+		     updateDT = SYSDATE
+	    </otherwise>
+	</choose>
+	        ,updaterID = 'tsync'
+	        ,custNM    = #{custNM}
+	        ,dbSTS     = #{dbSTS}
+		 where agentID = #{agentID} AND vdID = #{vdID} AND custID = #{custID}
+	</update>
+    <!-- =================================
+                    협력사 거래고객사 마스터 싱크 쿼리 파트 끝
+	     ================================= 
+	-->
+	
+	<!-- =================================
+                    사용자 마스터 싱크 쿼리 파트 시작
+	     ================================= 
+	-->
+	<!-- 사용자 존재여부 체크 -->
+	<select id="existsTblUserInfo" parameterType="hashmap" resultType="int">
+	<![CDATA[
+		select count(1) from tbl_userinfo where userUID = #{userUID}
+		]]>
+	</select>
+
+	<!-- 사용자 마스터 싱크 -->
+	<insert id="insTblUserInfo" parameterType="hashmap">	
+		INSERT INTO tbl_userinfo (
+			 userUID
+			,custID
+			,loginID
+		<if test='empNO != null and empNO != ""'>
+			,empNO
+		</if>
+		<if test='grade != null and grade != ""'>
+			,grade
+		</if>
+		<if test='userNM != null and userNM != ""'>
+			,userNM
+		</if>
+		<if test='userGB != null and userGB != ""'>
+			,userGB
+		</if>
+		<if test='email != null and email != ""'>
+			,email
+		</if>
+		<if test='zipCD != null and zipCD != ""'>
+			,zipCD
+		</if>
+		<if test='addr1 != null and addr1 != ""'>
+			,addr1
+		</if>
+		<if test='addr2 != null and addr2 != ""'>
+			,addr2
+		</if>
+		<if test='telNo != null and telNo != ""'>
+			,telNo
+		</if>
+		<if test='offTelNO != null and offTelNO != ""'>
+			,offTelNO
+		</if>
+		<if test='mobile != null and mobile != ""'>
+			,mobile
+		</if>
+		<if test='faxNO != null and faxNO != ""'>
+			,faxNO
+		</if>
+		<if test='borgUID != null and borgUID != ""'>
+			,borgUID
+		</if>
+		<if test='borgID != null and borgID != ""'>
+			,borgID
+		</if>
+		<if test='costBorgID != null and costBorgID != ""'>
+			,costBorgID
+		</if>
+		<if test='borgNM != null and borgNM != ""'>
+			,borgNM
+		</if>
+		<if test='sign != null and sign != ""'>
+			,sign
+		</if>
+		<if test='roleID != null and roleID != ""'>
+			,roleID
+		</if>
+		<if test='hrID != null and hrID != ""'>
+			,hrID
+		</if>
+		<if test='hrSubID != null and hrSubID != ""'>
+			,hrSubID
+		</if>
+		<if test='orgCustNM != null and orgCustNM != ""'>
+			,orgCustNM
+		</if>
+		<if test='taxEmail != null and taxEmail != ""'>
+			,taxEmail
+		</if>
+		<if test='attachID != null and attachID != ""'>
+			,attachID
+		</if>
+			,createrID
+			,createDT
+			,dbSTS
+			,agentID
+		) VALUES (
+			 #{userUID}
+			,#{custID}
+			,#{loginID}
+		<if test='empNO != null and empNO != ""'>
+			,#{empNO}
+		</if>
+		<if test='grade != null and grade != ""'>
+			,#{grade}
+		</if>
+		<if test='userNM != null and userNM != ""'>
+			,#{userNM}
+		</if>
+		<if test='userGB != null and userGB != ""'>
+			,#{userGB}
+		</if>
+		<if test='email != null and email != ""'>
+			,#{email}
+		</if>
+		<if test='zipCD != null and zipCD != ""'>
+			,#{zipCD}
+		</if>
+		<if test='addr1 != null and addr1 != ""'>
+			,#{addr1}
+		</if>
+		<if test='addr2 != null and addr2 != ""'>
+			,#{addr2}
+		</if>
+		<if test='telNo != null and telNo != ""'>
+			,#{telNo}
+		</if>
+		<if test='offTelNO != null and offTelNO != ""'>
+			,#{offTelNO}
+		</if>
+		<if test='mobile != null and mobile != ""'>
+			,#{mobile}
+		</if>
+		<if test='faxNO != null and faxNO != ""'>
+			,#{faxNO}
+		</if>
+		<if test='borgUID != null and borgUID != ""'>
+			,#{borgUID}
+		</if>
+		<if test='borgID != null and borgID != ""'>
+			,#{borgID}
+		</if>
+		<if test='costBorgID != null and costBorgID != ""'>
+			,#{costBorgID}
+		</if>
+		<if test='borgNM != null and borgNM != ""'>
+			,#{borgNM}
+		</if>
+		<if test='sign != null and sign != ""'>
+			,#{sign}
+		</if>
+		<if test='roleID != null and roleID != ""'>
+			,#{roleID}
+		</if>
+		<if test='hrID != null and hrID != ""'>
+			,#{hrID}
+		</if>
+		<if test='hrSubID != null and hrSubID != ""'>
+			,#{hrSubID}
+		</if>
+		<if test='orgCustNM != null and orgCustNM != ""'>
+			,#{orgCustNM}
+		</if>
+		<if test='taxEmail != null and taxEmail != ""'>
+			,#{taxEmail}
+		</if>
+		<if test='attachID != null and attachID != ""'>
+			,#{attachID}
+		</if>
+			,'tsync'
+		<choose>
+		    <when test='SQLMODE == "mariadb"'>
+		    ,now()
+		    </when>
+		    <otherwise>
+			,SYSDATE
+		    </otherwise>
+		</choose>
+			,#{dbSTS}
+			,#{agentID}
+		)
+	</insert>
+	
+	<!-- 사용자  마스터 싱크 -->
+	<update id="updTblUserInfo" parameterType="hashmap">
+		update tbl_userinfo set
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	         updateDT = now()
+	    </when>
+	    <otherwise>
+		     updateDT = SYSDATE
+	    </otherwise>
+	</choose>
+	        ,updaterID = 'tsync'
+			,empNO     = #{empNO}
+			,grade     = #{grade}
+			,userNM    = #{userNM}
+			,userGB    = #{userGB}
+			,email     = #{email}
+			,zipCD     = #{zipCD}
+			,addr1     = #{addr1}
+			,addr2     = #{addr2}		
+			,telNo     = #{telNo}
+			,offTelNO  = #{offTelNO}
+			,mobile    = #{mobile}
+			,faxNO     = #{faxNO}
+			,borgUID   = #{borgUID}
+			,borgID    = #{borgID}
+			,costBorgID= #{costBorgID}
+			,borgNM    = #{borgNM}
+			,sign      = #{sign}
+			,roleID    = #{roleID}
+			,hrID      = #{hrID}
+			,hrSubID   = #{hrSubID}
+			,orgCustNM = #{orgCustNM}
+			,taxEmail  = #{taxEmail}
+			,attachID  = #{attachID}
+			,dbSTS     = #{dbSTS}
+	    where userUID  = #{userUID}
+	</update>
+    <!-- =================================
+                    사용자 마스터 싱크 쿼리 파트 끝
+	     ================================= 
+	-->
+	
+	<!-- =================================
+                    운영자 담당 고객사 정보 싱크 쿼리 파트 시작
+	     ================================= 
+	-->
+	<!-- 운영자 담당 고객사 정보 존재여부 체크 -->
+	<select id="existsTblUserCust" parameterType="hashmap" resultType="int">
+	<![CDATA[
+		select count(1) from tbl_usercust where UUID = #{UUID}
+		]]>
+	</select>
+	<!-- 협력사 마스터 싱크 -->
+	<insert id="insTblUserCust" parameterType="hashmap">	
+		INSERT INTO tbl_usercust (
+			 UUID
+			,userUID
+			,custID
+			,custNM
+			,createrID
+			,createDT
+			,dbSTS
+			,agentID
+		) VALUES (
+			 #{UUID}
+			,#{userUID}
+			,#{custID}
+			,#{custNM}
+			,'tsync'
+		<choose>
+		    <when test='SQLMODE == "mariadb"'>
+		    ,now()
+		    </when>
+		    <otherwise>
+			,SYSDATE
+		    </otherwise>
+		</choose>
+			,#{dbSTS}
+			,#{agentID}
+		)
+	</insert>
+	
+	<!-- 운영자 담당 고객사 정보 싱크 -->
+	<update id="updTblUserCust" parameterType="hashmap">
+		update tbl_usercust set 
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	         updateDT = now()
+	    </when>
+	    <otherwise>
+		     updateDT = SYSDATE
+	    </otherwise>
+	</choose>
+	        ,updaterID = 'tsync'
+	        ,custNM    = #{custNM}
+	        ,dbSTS     = #{dbSTS}
+		 where UUID = #{UUID}
+	</update>
+    <!-- =================================
+                   운영자 담당 고객사 정보 싱크 쿼리 파트 끝
+	     ================================= 
+	-->
+	
+	<!-- =================================
+                    고객품목 정보 싱크 쿼리 파트 시작
+	     ================================= 
+	-->
+	<!-- 고객품목 정보 존재여부 체크 -->
+	<select id="existsTblCustItems" parameterType="hashmap" resultType="int">
+	<![CDATA[
+		select count(1) from tbl_custItems where custProdUID  = #{custProdUID}
+		]]>
+	</select>
+	<!-- 고객품목 정보 마스터 싱크 -->
+	<insert id="insTblCustItems" parameterType="hashmap">
+		INSERT INTO tbl_custitems (
+			 custProdUID  
+			,agentID      ,custID      ,custProdID
+			,vdID         ,prodID      ,prodGB     ,vdNM
+			,prodNM       ,prodNMEng   ,spec       ,modelNO
+			,goodsNM      ,makerID     ,makerNM    ,barcodeGB
+			,barcode      ,insureGB    ,ediNO      ,originCD
+			,ioGB         ,orderUnit   ,inUnit     ,MOQ
+			,changeUnit   ,changeQty   ,buyPrice   ,salePrice
+			,maxPrice     ,taxGB       ,stockYn    ,currency
+			,contUID      ,contDtlUID  ,avgShipDay ,detailInfo
+			,trunc        ,prodImgID   ,attachID   ,remark
+			,contGB       ,contDT      ,contBeginDT,contEndDT
+			,accCD        ,accNM       ,dbSTS      ,bizNO
+			,wmsYN        ,cimsYN      ,specLVL    ,RFIDYN
+			,setYN        ,udiGB       ,outUnit    ,fifoYN
+			,createDT     ,createrID
+		) VALUES (
+			 #{custProdUID},#{agentID}   ,#{custID}     ,#{custProdID}
+			,#{vdID}       ,#{prodID}    ,#{prodGB}     ,#{vdNM}
+			,#{prodNM}     ,#{prodNMEng} ,#{spec}       ,#{modelNO}
+			,#{goodsNM}    ,#{makerID}   ,#{makerNM}    ,#{barcodeGB}
+			,#{barcode}    ,#{insureGB}  ,#{ediNO}      ,#{originCD}
+			,#{ioGB}       ,#{orderUnit} ,#{inUnit}     ,#{MOQ}
+			,#{changeUnit} ,#{changeQty} ,#{buyPrice}   ,#{salePrice}
+			,#{maxPrice}   ,#{taxGB}     ,#{stockYn}    ,#{currency}
+			,#{contUID}    ,#{contDtlUID},#{avgShipDay} ,#{detailInfo}
+			,#{trunc}      ,#{prodImgID} ,#{attachID}   ,#{remark}
+			,#{contGB}     ,#{contDT}    ,#{contBeginDT},#{contEndDT}
+			,#{accCD}      ,#{accNM}     ,#{dbSTS}      ,#{bizNO}
+			,#{wmsYN}      ,#{cimsYN}    ,#{specLVL}    ,#{RFIDYN}
+			,#{setYN}      ,#{udiGB}     ,#{outUnit}    ,#{fifoYN}
+		<choose>
+		    <when test='SQLMODE == "mariadb"'>
+		    ,now()
+		    </when>
+		    <otherwise>
+			,SYSDATE
+		    </otherwise>
+		</choose>
+		    ,'tsync'
+		)
+	</insert>
+	
+	<!-- 고객품목 정보 마스터 싱크 -->
+	<update id="updTblCustItems" parameterType="hashmap">
+		update tbl_custitems set
+		     updaterID = 'tsync'
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	        ,updateDT  = now()
+	    </when>
+	    <otherwise>
+		    ,updateDT  = SYSDATE
+	    </otherwise>
+	</choose>
+			,custProdID = #{custProdID} ,prodID     = #{prodID}
+			,vdID       = #{vdID}       ,vdNM       = #{vdNM}
+			,prodID     = #{prodID}     ,prodNM     = #{prodNM}
+			,prodGB     = #{prodGB}     ,prodNMEng  = #{prodNMEng}
+			,spec       = #{spec}       ,modelNO    = #{modelNO}
+			,goodsNM    = #{goodsNM}    ,makerID    = #{makerID}
+			,makerNM    = #{makerNM}    ,barcodeGB  = #{barcodeGB}
+			,barcode    = #{barcode}    ,insureGB   = #{insureGB}
+			,ediNO      = #{ediNO}      ,originCD   = #{originCD}			
+			,ioGB       = #{ioGB}       ,orderUnit  = #{orderUnit}
+			,inUnit     = #{inUnit}     ,inUnit     = #{inUnit}
+			,MOQ        = #{MOQ}        ,changeUnit = #{changeUnit}
+			,changeQty  = #{changeQty}  ,buyPrice   = #{buyPrice}			
+			,salePrice  = #{salePrice}  ,maxPrice   = #{maxPrice}
+			,taxGB      = #{taxGB}      ,stockYn    = #{stockYn}
+			,currency   = #{currency}   ,contUID    = #{contUID}
+			,contDtlUID = #{contDtlUID} ,avgShipDay = #{avgShipDay}
+			,trunc      = #{trunc}      ,detailInfo = #{detailInfo}
+			,prodImgID  = #{prodImgID}  ,attachID   = #{attachID}
+			,remark     = #{remark}     ,contGB     = #{contGB}
+			,accCD      = #{accCD}      ,contDT     = #{contDT}
+			,contBeginDT= #{contBeginDT},contEndDT  = #{contEndDT}
+			,accNM      = #{accNM}      ,dbSTS      = #{dbSTS}
+			,bizNO      = #{bizNO}      ,RFIDYN     = #{RFIDYN}
+			,wmsYN      = #{wmsYN}      ,cimsYN     = #{cimsYN}    
+			,specLVL    = #{specLVL}	,setYN      = #{setYN}
+			,udiGB      = #{udiGB}      ,outUnit    = #{outUnit}
+			,fifoYN     = #{fifoYN}
+	    where 
+	         custProdUID = #{custProdUID}
+	</update>
+    <!-- =================================
+                    고객품목 정보 싱크 쿼리 파트 끝
+	     ================================= 
+	-->
+	
+	<!-- =================================
+                    품목 정보 싱크 쿼리 파트 시작
+	     ================================= 
+	-->
+	<!-- 품목 정보 존재여부 체크 -->
+	<select id="existsTblItems" parameterType="hashmap" resultType="int">
+	<![CDATA[
+		select count(1) from tbl_items where prodUID = #{prodUID}
+		]]>
+	</select>
+	<!-- 품목 정보 마스터 싱크 -->
+	<insert id="insTblItems" parameterType="hashmap">
+		INSERT INTO tbl_items (
+			prodUID         , agentID      , stdProdID     , prodID
+			, prodGB        , prodNM       , prodNMEng     , spec
+			, unSPSC        , modelNO      , createType    , makerID
+			, makerNM       , setGB        , setCnt        , insureGB
+			, ediNO         , goodsNM      , originCD      , orderUnit
+			, MOQ           , chngUnit     , chngQty       , maxPrice
+			, barcode       , barcodeGB    , buyPrice      , salePrice
+			, drugGB        , dosageFrm    , drugEffCode   , leadTime
+			, detailInfo    , attachID     , remark        , managerID
+			, prodImgID     , ioGB         , currency      , stopYN
+			, soldOutYN     , inUnit       , erpProdID     , kgspProdID
+			, kgspNoticeYN  , categID1     , categID2      , categID3
+			, categID4      , catalog      , udiGB         , casNo
+			, dangerGb      , dbSTS        , createDT      , createrID
+			, accCD         , accNM        , licenseNO     , licenseLVL
+			, keyTags
+			
+		) VALUES (
+			#{prodUID}       , #{agentID}  , #{stdProdID}  , #{prodID}
+			, #{prodGB}      , #{prodNM}   , #{prodNMEng}  , #{spec}
+			, #{unSPSC}      , #{modelNO}  , #{createType} , #{makerID}
+			, #{makerNM}     , #{setGB}    , #{setCnt}     , #{insureGB}
+			, #{ediNO}       , #{goodsNM}  , #{originCD}   , #{orderUnit}
+			, #{MOQ}         , #{chngUnit} , #{chngQty}    , #{maxPrice}
+			, #{barcode}     , #{barcodeGB}, #{buyPrice}   , #{salePrice}
+			, #{drugGB}      , #{dosageFrm}, #{drugEffCode}, #{leadTime}
+			, #{detailInfo}  , #{attachID} , #{remark}     , #{managerID}
+			, #{prodImgID}   , #{ioGB}     , #{currency}   , #{stopYN}
+			, #{soldOutYN}   , #{inUnit}   , #{erpProdID}  , #{kgspProdID}
+			, #{kgspNoticeYN}, #{categID1} , #{categID2}   , #{categID3}
+			, #{categID4}    , #{catalog}  , #{udiGB}      , #{casNo}
+			, #{dangerGb}    , #{dbSTS}
+		<choose>
+		    <when test='SQLMODE == "mariadb"'>
+		    ,now()
+		    </when>
+		    <otherwise>
+			,SYSDATE
+		    </otherwise>
+		</choose>
+		    ,'tsync'
+		    , #{accCD}       , #{accNM}    , #{licenseNO}  , #{licenseLVL}
+			, #{keyTags}
+		)
+	</insert>
+	
+	<!-- 품목 정보 마스터 싱크 -->
+	<update id="updTblItems" parameterType="hashmap">
+		update tbl_items set
+		     updaterID = 'tsync'
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	        ,updateDT  = now()
+	    </when>
+	    <otherwise>
+		    ,updateDT  = SYSDATE
+	    </otherwise>
+	</choose>
+			, prodUID     = #{prodUID}     , agentID   = #{agentID}  
+			, stdProdID   = #{stdProdID}   , prodID    = #{prodID}
+			, prodGB      = #{prodGB}      , prodNM    = #{prodNM}   
+			, prodNMEng   = #{prodNMEng}   , spec      = #{spec}
+			, unSPSC      = #{unSPSC}      , modelNO   = #{modelNO}  
+			, createType  = #{createType}  , makerID   = #{makerID}
+			, makerNM     = #{makerNM}     , setGB     = #{setGB}    
+			, setCnt      = #{setCnt}      , insureGB  = #{insureGB}
+			, ediNO       = #{ediNO}       , goodsNM   = #{goodsNM}  
+			, originCD    = #{originCD}    , orderUnit = #{orderUnit}
+			, MOQ         = #{MOQ}         , chngUnit  = #{chngUnit} 
+			, chngQty     = #{chngQty}     , maxPrice  = #{maxPrice}
+			, barcode     = #{barcode}     , barcodeGB = #{barcodeGB}
+			, buyPrice    = #{buyPrice}    , salePrice = #{salePrice}
+			, drugGB      = #{drugGB}      , dosageFrm = #{dosageFrm}
+			, drugEffCode = #{drugEffCode} , leadTime  = #{leadTime}
+			, detailInfo  = #{detailInfo}  , attachID  = #{attachID} 
+			, remark      = #{remark}      , managerID = #{managerID}
+			, prodImgID   = #{prodImgID}   , ioGB      = #{ioGB}     
+			, currency    = #{currency}    , stopYN    = #{stopYN}
+			, soldOutYN   = #{soldOutYN}   , inUnit    = #{inUnit}   
+			, erpProdID   = #{erpProdID}   , kgspProdID= #{kgspProdID}
+			, kgspNoticeYN= #{kgspNoticeYN}, categID1  = #{categID1} 
+			, categID2    = #{categID2}    , categID3  = #{categID3}
+			, categID4    = #{categID4}    , catalog   = #{catalog}  
+			, udiGB       = #{udiGB}       , casNo     = #{casNo}
+			, dangerGb    = #{dangerGb}    , dbSTS     = #{dbSTS}
+			, accCD       = #{accCD}       , accNM     = #{accNM}
+			, licenseNO   = #{licenseNO}   , licenseLVL= #{licenseLVL}
+			, keyTags     = #{keyTags}
+	    where prodUID = #{prodUID}
+	</update>
+    <!-- =================================
+                    품목 정보 싱크 쿼리 파트 끝
+	     ================================= 
+	-->
+	
+	<!-- =================================
+                    매핑 품목 정보 싱크 쿼리 파트 시작
+	     ================================= 
+	-->
+	<!-- 매핑 품목 정보 존재여부 체크 -->
+	<select id="existsTblGpnItems" parameterType="hashmap" resultType="int">
+	<![CDATA[
+		select count(1) from tbl_gpnitemmaps where mapUID = #{mapUID}
+		]]>
+	</select>
+	<!-- 매핑 품목 정보 마스터 싱크 -->
+	<insert id="insTblGpnItems" parameterType="hashmap">
+		INSERT INTO tbl_gpnitemmaps (
+			mapUID
+			,custID
+			,custProdID
+			,vdProdID
+			,vdID
+			,agentID
+			,dbSTS
+			,createDT
+			,createrID
+		) VALUES (
+			#{mapUID}
+			,#{custID}
+			,#{custProdID}
+			,#{vdProdID}
+			,#{vdID}
+			,#{agentID}
+			,#{dbSTS}
+		<choose>
+		    <when test='SQLMODE == "mariadb"'>
+		    ,now()
+		    </when>
+		    <otherwise>
+			,SYSDATE
+		    </otherwise>
+		</choose>
+		    ,'tsync'
+		)
+	</insert>
+	
+	<!-- 매핑 품목 정보 마스터 싱크 -->
+	<update id="updTblGpnItems" parameterType="hashmap">
+		update tbl_gpnitemmaps set
+		     updaterID = 'tsync'
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	        ,updateDT  = now()
+	    </when>
+	    <otherwise>
+		    ,updateDT  = SYSDATE
+	    </otherwise>
+	</choose>
+			,custID     = #{custID}
+			,custProdID = #{custProdID}
+			,vdProdID   = #{vdProdID}
+			,vdID       = #{vdID}
+			,agentID    = #{agentID}
+			,dbSTS      = #{dbSTS}
+	    where mapUID    = #{mapUID}
+	</update>
+    <!-- =================================
+                    매핑 품목 정보 싱크 쿼리 파트 끝
+	     ================================= 
+	-->
+	
+</mapper>

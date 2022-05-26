@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sci4s.msa.mapper.thr.THrMapper">
+
+	<!-- uuID -->
+	<select id="getUUID" parameterType="hashmap" resultType="hashmap">
+		<choose>
+		  <when test='SQLMODE == "mariadb"'>
+			SELECT getUUID('tbl_uuids') AS uuID
+		  </when>
+		  <otherwise>
+		  	SELECT seq_uuid.nextval AS uuID FROM DUAL
+		  </otherwise>
+		</choose>
+	</select>
+
+    <!-- =================================
+                    공통코드 싱크 쿼리 파트 시작
+	     ================================= 
+	-->
+	<!-- 공통코드 존재여부 체크 -->
+	<select id="existsTblCodes" parameterType="hashmap" resultType="int">
+	<![CDATA[
+		select count(1) from tbl_codes
+	     where agentID  = #{agentID}
+	       and nationCD = #{nationCD}
+	       and codeType = #{codeType}
+	       and codeID   = #{codeID}
+		]]>
+	</select>
+
+	<!-- 공통코드 마스터 싱크 -->
+	<insert id="insTblCodes" parameterType="hashmap">
+		insert into tbl_codes (
+		 agentID
+		,codeType
+		,codeTypeNM
+		,codeID
+		,nationCD
+	<if test='refCodeID != null and refCodeID != ""'>
+		,refCodeID
+	</if>
+	<if test='val1 != null and val1 != ""'>
+		,val1
+	</if>
+	<if test='val2 != null and val2 != ""'>
+		,val2
+	</if>
+	<if test='val3 != null and val3 != ""'>
+		,val3
+	</if>
+		,createDT
+		,createrID
+		,dbSTS
+		,sortORD
+		) values (
+		 #{agentID}
+		,#{codeType}
+		,#{codeTypeNM}
+		,#{codeID}
+		,#{nationCD}
+	<if test='refCodeID != null and refCodeID != ""'>
+		,#{refCodeID}
+	</if>
+	<if test='val1 != null and val1 != ""'>
+		,#{val1}
+	</if>
+	<if test='val2 != null and val2 != ""'>
+		,#{val2}
+	</if>
+	<if test='val3 != null and val3 != ""'>
+		,#{val3}
+	</if>
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	    ,now()
+	    </when>
+	    <otherwise>
+		,SYSDATE
+	    </otherwise>
+	</choose>
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	    ,IFNULL(#{createrID},'system')
+	    </when>
+	    <otherwise>
+		,NVL(#{createrID},'system')
+	    </otherwise>
+	</choose>
+		,#{dbSTS}
+		,#{sortORD}
+		)
+	</insert>
+	
+	<!-- 공통코드 마스터 싱크 -->
+	<update id="updTblCodes" parameterType="hashmap">
+		update tbl_codes set
+		     codeTypeNM = #{codeTypeNM}
+			,refCodeID  = #{refCodeID}
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	        ,createrID  = IFNULL(#{createrID},'system')
+	    </when>
+	    <otherwise>
+		    ,createrID  = NVL(#{createrID},'system')
+	    </otherwise>
+	</choose>
+	<choose>
+	    <when test='SQLMODE == "mariadb"'>
+	        ,createDT  = now()
+	    </when>
+	    <otherwise>
+		    ,createDT  = SYSDATE
+	    </otherwise>
+	</choose>
+			,val1      = #{val1}
+			,val2      = #{val2}
+			,val3      = #{val3}
+			,dbSTS     = #{dbSTS}
+			,sortORD   = #{sortORD}
+	    where agentID  = #{agentID}
+	      and nationCD = #{nationCD}
+	      and codeType = #{codeType}
+	      and codeID   = #{codeID}
+	</update>
+    <!-- =================================
+                    공통코드 싱크 쿼리 파트 끝
+	     ================================= 
+	-->
+</mapper>

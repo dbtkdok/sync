@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<services>
+	<!-- 발주마스터 존재여부 조회 -->
+	<proc><step PID="SCM4130"  service="commService" query="existsTblPoMaster4IF" method="query4Data"/></proc>
+</services>

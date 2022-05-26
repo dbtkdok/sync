@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sci4s.msa.mapper.tnote.TNoteMapper">
+
+	<!-- uuID -->
+	<select id="getUUID" parameterType="hashmap" resultType="hashmap">
+		<choose>
+		  <when test='SQLMODE == "mariadb"'>
+			SELECT getUUID('tbl_uuids') AS uuID
+		  </when>
+		  <otherwise>
+		  	SELECT seq_uuid.nextval AS uuID FROM DUAL
+		  </otherwise>
+		</choose>
+	</select>
+
+    <!-- =================================
+                    첨부파일 싱크 쿼리 파트 시작
+	     ================================= 
+	-->
+	<!-- 첨부파일 존재여부 체크 -->
+	<select id="existsTblAttach" parameterType="hashmap" resultType="int">
+	<![CDATA[
+		select count(1) from tbl_attach where fileUID  = #{fileUID}
+		]]>
+	</select>
+
+	<!-- 첨부파일 싱크 -->
+	<insert id="insTblAttach" parameterType="hashmap">
+		insert into tbl_attach (
+				 fileUID
+			<if test='docNO != null and docNO != ""'>
+		         ,docNO
+		         ,docGB
+			</if>
+				,attachID
+				,uploadPath
+				,uploadAsePath
+				,saveNM
+				,fileNM
+				,extNM
+				,fileSize
+				,dbSTS
+				,createrID
+				,createDT
+				,agentID
+			) value (
+				#{fileUID}
+			<if test='docNO != null and docNO != ""'>
+	            , #{docNO}
+	            , #{docGB}
+			</if>
+				,#{attachID}
+				,REPLACE(#{uploadPath},'\\','')
+				,#{uploadAsePath}
+				,#{saveNM}
+				,#{fileNM}
+				,#{extNM}
+				,#{fileSize}
+				,#{dbSTS}
+				,CASE WHEN #{createrID} IS NULL THEN 'system' ELSE #{createrID} END
+				<choose>
+				  <when test='SQLMODE == "oracle"'>
+			     , sysdate
+				  </when>
+				  <otherwise>
+			     , now()
+				  </otherwise>
+				</choose> 
+			     ,#{agentID}
+			)
+	</insert>
+	
+	<!-- 파일첨부 마스터 싱크 -->
+	<update id="updTblAttach" parameterType="hashmap">
+		UPDATE tbl_attach A
+		   SET
+			<choose>
+			  <when test='SQLMODE == "oracle"'>
+		     A.updateDT = sysdate
+			  </when>
+			  <otherwise>
+		     A.updateDT = now()
+			  </otherwise>
+			</choose> 
+			<if test='docNO != null and docNO != ""'>
+            ,A.docNO = #{docNO}
+			</if>
+			<if test='docGB != null and docGB != ""'>
+            ,A.docGB = #{docGB}
+			</if>
+			<if test='attachID != null and attachID != ""'>
+            ,A.attachID = #{attachID}
+			</if>
+			<if test='uploadPath != null and uploadPath != ""'>
+            ,A.uploadPath = REPLACE(#{uploadPath},'\\','')
+			</if>
+			<if test='uploadAsePath != null and uploadAsePath != ""'>
+            ,A.uploadAsePath = #{uploadAsePath}
+			</if>
+			<if test='saveNM != null and saveNM != ""'>
+            ,A.saveNM = #{saveNM}
+			</if>
+			<if test='fileNM != null and fileNM != ""'>
+            ,A.fileNM = #{fileNM}
+			</if>
+			<if test='mainYN != null and mainYN != ""'>
+            ,A.mainYN = #{mainYN}
+			</if>
+			<if test='extNM != null and extNM != ""'>
+            ,A.extNM = #{extNM}
+			</if>
+			<if test='fileSize != null and fileSize != ""'>
+            ,A.fileSize = #{fileSize}
+			</if>
+			<if test='updaterID != null and updaterID != ""'>
+            ,A.updaterID = CASE WHEN #{updaterID} IS NULL THEN 'system' ELSE #{updaterID} END
+			</if>
+			<if test='dbSTS != null and dbSTS != ""'>
+            ,dbSTS  = #{dbSTS}
+			</if>
+         WHERE A.fileUID = #{fileUID}
+	</update>
+    <!-- =================================
+                    파일첨부 싱크 쿼리 파트 끝
+	     ================================= 
+	-->
+</mapper>
